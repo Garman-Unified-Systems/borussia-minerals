@@ -12,7 +12,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 process.env.STRIPE_SECRET_KEY = "sk_test_mock_key_for_unit_tests";
 process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_mock_secret";
 
-// ── Mock google-sheets so markSpecimensAsSold never calls the Sheets API ─────
+// ── Mock @/lib/data-backend (router — webhook imports markSpecimensAsSold from here) ─
+vi.mock("@/lib/data-backend", () => ({
+  markSpecimensAsSold: vi.fn().mockResolvedValue(undefined),
+  fetchAllSpecimens:   vi.fn().mockResolvedValue([]),
+  fetchSpecimens:      vi.fn().mockResolvedValue([]),
+  fetchSpecimenById:   vi.fn().mockResolvedValue(null),
+}));
+
+// ── Mock @/lib/airtable (Airtable-only writes used by webhook) ────────────────
+vi.mock("@/lib/airtable", () => ({
+  createOrder:         vi.fn().mockResolvedValue({ id: "recMock001" }),
+  updateOrderStatus:   vi.fn().mockResolvedValue(undefined),
+  fetchAllSpecimens:   vi.fn().mockResolvedValue([]),
+  fetchSpecimenById:   vi.fn().mockResolvedValue(null),
+}));
+
+// ── Mock google-sheets (no longer called directly by webhook after PR C) ──────
 vi.mock("@/lib/google-sheets", () => ({
   markSpecimensAsSold: vi.fn().mockResolvedValue(undefined),
   fetchSpecimenById: vi.fn(),
@@ -118,7 +134,8 @@ describe("POST /api/webhooks/stripe", () => {
   });
 
   it("calls markSpecimensAsSold with correct IDs on checkout.session.completed", async () => {
-    const { markSpecimensAsSold } = await import("@/lib/google-sheets");
+    // PR C: markSpecimensAsSold is now routed through @/lib/data-backend, not google-sheets directly
+    const { markSpecimensAsSold } = await import("@/lib/data-backend");
     const event = makeCheckoutEvent("cupr-001, cupr-002");
     mockConstructEvent.mockReturnValue(event);
 
@@ -182,7 +199,8 @@ describe("POST /api/webhooks/stripe", () => {
   });
 
   it("does not call markSpecimensAsSold when specimen_ids metadata is empty", async () => {
-    const { markSpecimensAsSold } = await import("@/lib/google-sheets");
+    // PR C: assert against data-backend router, not google-sheets
+    const { markSpecimensAsSold } = await import("@/lib/data-backend");
     const event = makeCheckoutEvent(""); // empty specimen_ids
     mockConstructEvent.mockReturnValue(event);
 
