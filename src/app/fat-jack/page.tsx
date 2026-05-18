@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { TierBadge } from "@/components/tier-badge";
 import { getMineBySlug } from "@/lib/data";
 import { getPageCopy } from "@/lib/google-copy";
-import { fetchSpecimens } from "@/lib/google-sheets";
+import { fetchSpecimens } from "@/lib/data-backend";
 import { formatPrice } from "@/lib/utils";
 
 export const revalidate = 60;
