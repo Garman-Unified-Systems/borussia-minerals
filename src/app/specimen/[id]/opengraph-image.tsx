@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { fetchSpecimenById } from "@/lib/google-sheets";
+import { fetchSpecimenById } from "@/lib/data-backend";
 
 export const size = {
   width: 1200,

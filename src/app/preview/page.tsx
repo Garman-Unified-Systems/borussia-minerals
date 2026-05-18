@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { ProductCard } from "@/components/product-card";
-import { fetchAllSpecimens } from "@/lib/google-sheets";
+import { fetchAllSpecimens } from "@/lib/data-backend";
 
 export const revalidate = 60;
 

@@ -9,7 +9,7 @@ import { SpecimenCTASection } from "@/components/specimen-cta-section";
 import { SpecimenPhotoStrip } from "@/components/specimen-photo-strip";
 import { TrustSignals } from "@/components/trust-signals";
 import { TierBadge, SplatBadge } from "@/components/tier-badge";
-import { fetchSpecimens, fetchSpecimenById } from "@/lib/google-sheets";
+import { fetchSpecimens, fetchSpecimenById } from "@/lib/data-backend";
 import { formatPrice, isPurchasable } from "@/lib/utils";
 import JsonLd from "@/components/JsonLd";
 

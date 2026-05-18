@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { fetchSpecimens } from "@/lib/google-sheets";
+import { fetchSpecimens } from "@/lib/data-backend";
 
 const BASE_URL = "https://borussiaminerals.com";
 

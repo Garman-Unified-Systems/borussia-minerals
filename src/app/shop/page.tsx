@@ -2,7 +2,7 @@ import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { ShopGrid } from "@/components/shop-grid";
 import JsonLd from "@/components/JsonLd";
-import { fetchSpecimens } from "@/lib/google-sheets";
+import { fetchSpecimens } from "@/lib/data-backend";
 import { getPageCopy } from "@/lib/google-copy";
 
 export const revalidate = 60; // ISR: revalidate every 60 seconds
