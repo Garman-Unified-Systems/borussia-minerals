@@ -1,12 +1,13 @@
 /**
- * Stripe webhook → Airtable side-effects unit tests (Phase 5).
+ * Stripe webhook → Airtable side-effects unit tests (Phase 5 / PR C).
  *
- * Strategy: mock @/lib/airtable, @/lib/google-sheets, stripe, and global fetch
- * so no real HTTP calls are made. GOV-052: credentials are stubs only.
+ * Strategy: mock @/lib/data-backend (router), @/lib/airtable, @/lib/google-sheets,
+ * stripe, and global fetch so no real HTTP calls are made.
+ * GOV-052: credentials are stubs only.
  *
  * Covers:
  * 1. checkout.session.completed → createOrder called with the session
- * 2. checkout.session.completed → markSpecimensAsSold called with extracted IDs
+ * 2. checkout.session.completed → markSpecimensAsSold called via data-backend router
  * 3. checkout.session.completed → ISR revalidate fetch called for /store + per-specimen
  * 4. checkout.session.completed with no specimen_ids → markSpecimensAsSold NOT called
  * 5. charge.refunded with stripe_session_id metadata → updateOrderStatus('refunded') called
@@ -25,21 +26,29 @@ process.env.NEXT_PUBLIC_SITE_URL   = "http://localhost:3000";
 process.env.BORUSSIA_AIRTABLE_TOKEN   = "patSTUBTOKEN_phase5.mock";
 process.env.BORUSSIA_AIRTABLE_BASE_ID = "appSTUBBASE_phase5";
 
-// ── Mock @/lib/airtable ───────────────────────────────────────────────────────
-const mockCreateOrder         = vi.fn().mockResolvedValue({ id: "recOrderMock001" });
+// ── Mock @/lib/data-backend (router — the single markSpecimensAsSold call site) ─
 const mockMarkSpecimensAsSold = vi.fn().mockResolvedValue(undefined);
-const mockUpdateOrderStatus   = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@/lib/data-backend", () => ({
+  markSpecimensAsSold:  mockMarkSpecimensAsSold,
+  fetchAllSpecimens:    vi.fn().mockResolvedValue([]),
+  fetchSpecimens:       vi.fn().mockResolvedValue([]),
+  fetchSpecimenById:    vi.fn().mockResolvedValue(null),
+}));
+
+// ── Mock @/lib/airtable (Airtable-only writes: createOrder, updateOrderStatus) ─
+const mockCreateOrder       = vi.fn().mockResolvedValue({ id: "recOrderMock001" });
+const mockUpdateOrderStatus = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/airtable", () => ({
   createOrder:         mockCreateOrder,
-  markSpecimensAsSold: mockMarkSpecimensAsSold,
   updateOrderStatus:   mockUpdateOrderStatus,
-  // Export stubs for anything else the webhook might import
+  // markSpecimensAsSold intentionally absent — calls go through data-backend router
   fetchAllSpecimens:   vi.fn().mockResolvedValue([]),
   fetchSpecimenById:   vi.fn().mockResolvedValue(null),
 }));
 
-// ── Mock @/lib/google-sheets ──────────────────────────────────────────────────
+// ── Mock @/lib/google-sheets (never called directly by webhook after PR C) ────
 vi.mock("@/lib/google-sheets", () => ({
   markSpecimensAsSold: vi.fn().mockResolvedValue(undefined),
   fetchSpecimenById:   vi.fn(),
@@ -60,8 +69,9 @@ vi.mock("stripe", () => {
 });
 
 // ── Mock global fetch for ISR revalidation ────────────────────────────────────
+// Use globalThis assignment instead of vi.stubGlobal (not available in this bun/vitest version)
 const mockFetch = vi.fn().mockResolvedValue({ ok: true, status: 200 } as Response);
-vi.stubGlobal("fetch", mockFetch);
+globalThis.fetch = mockFetch as unknown as typeof fetch;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 import { NextRequest } from "next/server";

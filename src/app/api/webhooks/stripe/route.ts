@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { markSpecimensAsSold } from "@/lib/google-sheets";
+import { markSpecimensAsSold } from "@/lib/data-backend";
 import * as airtable from "@/lib/airtable";
 
 export async function POST(request: NextRequest) {
@@ -58,21 +58,15 @@ export async function POST(request: NextRequest) {
         console.error("[stripe-webhook] Failed to create Airtable order:", err);
       }
 
-      // ── Airtable: mark specimens as sold ─────────────────────────────────────
+      // ── Mark specimens as sold (routed via data-backend) ─────────────────────
       if (specimenIds.length > 0) {
-        // Google Sheets (existing dual-write — kept during migration window)
+        // Router resolves to Sheets (USE_AIRTABLE_BACKEND=false, default) or
+        // Airtable (USE_AIRTABLE_BACKEND=true). Single call site — no dual-write.
         try {
           await markSpecimensAsSold(specimenIds);
+          console.log("[stripe-webhook] specimens marked sold via data-backend:", specimenIds);
         } catch (err) {
-          console.error("[stripe-webhook] Failed to mark specimens as sold in Sheets:", err);
-        }
-
-        // Airtable (Phase 5 side effect)
-        try {
-          await airtable.markSpecimensAsSold(specimenIds);
-          console.log("[stripe-webhook] Airtable specimens marked sold:", specimenIds);
-        } catch (err) {
-          console.error("[stripe-webhook] Failed to mark specimens as sold in Airtable:", err);
+          console.error("[stripe-webhook] Failed to mark specimens as sold:", err);
         }
 
         // ── ISR revalidation ──────────────────────────────────────────────────
